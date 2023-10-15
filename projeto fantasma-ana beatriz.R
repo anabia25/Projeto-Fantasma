@@ -1,8 +1,8 @@
 library("ggplot2")
 library("dplyr")
 ##Importando os dados
-devolucao<- read.csv("C:\\Users\\beatr\\Downloads\\devolução.csv")
-vendas<-read.csv("C:\\Users\\beatr\\Downloads\\vendas.csv")
+devolucao<- read.csv(".devolução.csv")
+vendas<-read.csv(".vendas.csv")
 
 ##Arrumando o banco de dados---- 
 #Mudando os nomes
