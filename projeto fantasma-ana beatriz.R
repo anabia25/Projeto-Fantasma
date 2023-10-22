@@ -1,9 +1,9 @@
 library("ggplot2")
 library("dplyr")
+source("packages.R")
 ##Importando os dados
-devolucao<- read.csv(".devolução.csv")
-vendas<-read.csv(".vendas.csv")
-
+devolucao<- read.csv("devolução.csv")
+vendas <- read.csv("vendas.csv")
 ##Arrumando o banco de dados---- 
 #Mudando os nomes
 colnames(vendas)[] = c("ordem","ordem1", "data da venda", "ID do usuário","ID do produto","nome do produto",
@@ -13,9 +13,9 @@ colnames(vendas)[] = c("ordem","ordem1", "data da venda", "ID do usuário","ID d
 vendas$ordem1<- NULL
 vendas$sodeussabe<-NULL
 
-
+view(vendas_s2)
 #Verificando a duplicidade no ID único
-tem_dupli<- any(duplicated(vendas$`ID único`))
+tem_dupli<- any(duplicated())
 if(tem_dupli){
   print("Existe duplicidade")
 } else {
@@ -35,46 +35,9 @@ if(tem_dupli2){
 }
 
 
-#1)Faturamento anual po categoria----
-#1.1) Grafico de frequencia por categoria----
-classes <- vendas_s2 %>%
-  filter(!is.na(categoria)) %>%
-  mutate(
-    categoria = case_when(
-      categoria == "Women's Fashion" ~ "Moda Feminina",
-      categoria == "Men's Fashion" ~ "Moda Masculina",
-      categoria == "Kids' Fashion" ~ "Moda Infantil"
-    )
-  ) %>%
-  count(categoria) %>%
-  mutate(
-    freq = n %>% percent(),
-  ) %>%
-  mutate(
-    freq = gsub("\\.", ",", freq) %>% paste("%", sep = ""),
-    label = str_c(n, " (", freq, ")") %>% str_squish()
-  )
+#1.0)Faturamento anual po categoria----
 
-ggplot(classes) +
-  aes(
-    x = fct_reorder(categoria, n, .desc = T), 
-    y = n,
-    label = label
-  ) +
-  geom_bar(stat = "identity", fill = "#A11D21", width = 0.7) +
-  geom_text(
-    position = position_dodge(width = .9),
-    vjust = -0.5,
-    size = 3
-  ) +
-  labs(x = "Categoria", y = "Frequência") +
-  theme_estat()
-#ggsave("freq-categoria.pdf", width = 158, height = 93, units = "mm")
-
-#tabela de frequencia
-xtable::xtable(classes)
-
-#1.2) Grafico de faturamento por categoria----
+#1.1)Grafico de faturamento por categoria----
 
 #Tratando os dados
 faturamento_por_categoria <- vendas_s2 %>%
@@ -126,11 +89,11 @@ ggplot(faturamento_por_categ, aes(
   labs(x = "Categoria", y = "Faturamento") +
   theme_estat()
 #ggsave("fatura-categoria.pdf", width = 158, height = 93, units = "mm")
-)
 
 
 
-#1.3)Grafico da analise mensal de faturamento por categoria----
+
+#1.2)Grafico da analise mensal de faturamento por categoria----
 #arrumando os dados
 vendas_hit <- vendas_s2 %>% 
   select(`data da venda`, categoria, preço) %>%
@@ -149,7 +112,7 @@ vendas_hit$`data da venda` <- NULL
 # Agrupar por categoria e mês\calcular a média do preço
 venda_hit <- vendas_hit %>%
   group_by(categoria, mes) %>%
-  summarise(media_preco = mean(preço, na.rm = TRUE))
+  summarise(media_preco = sum(preço, na.rm = TRUE))
 
 ggplot(venda_hit) +
   aes(x = mes, y = media_preco, group = categoria, colour = categoria) +
@@ -161,15 +124,17 @@ Moda Masculina","Moda Infantil")) +
   scale_x_continuous(breaks = 1:12, labels = c("Jan", "Fev", "Mar", "Abr", "Mai", 
                                                "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez")) +
   theme_estat()
-ggsave("media_fat.mensal_categ.pdf", width = 158, height = 93, units = "mm")
+#ggsave("media_fat.mensal_categ.pdf", width = 158, height = 93, units = "mm")
 
 
-#1.4)Quadro de resumo----
-# Excluir NA em preço e categoria
-vendas_s2_na <- vendas_s2[!is.na(vendas_s2$preço) & !is.na(vendas_s2$categoria), ]
 
+
+#2.0)Variação do preço por marca----
+#2.1)Quadro de resumo----
+# Excluir NA
+vendas_s2_na <- vendas_s2[!is.na(vendas_s2$preço) & !is.na(vendas_s2$marca),]
 quadro_resumo <- vendas_s2_na %>% 
-  group_by(categoria) %>% # caso mais de uma categoria
+  group_by(marca) %>% # caso mais de uma categoria
   summarise(Média = round(mean(preço),2),
             `Desvio Padrão` = round(sd(preço),2),
             `Variância` = round(var(preço),2),
@@ -181,3 +146,19 @@ quadro_resumo <- vendas_s2_na %>%
   mutate(V1 = str_replace(V1,"\\.",",")) 
 
 xtable::xtable(quadro_resumo)
+
+#2.2) Box-Plot 
+
+vendas_s2_na <- vendas_s2[!is.na(vendas_s2$preço) & !is.na(vendas_s2$marca), ]
+
+
+ggplot(vendas_s2_na) +
+  aes(x = marca, y = preço) +
+  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "Marca", y = "Preço") +
+  theme_estat()
+#ggsave("box_bi.pdf", width = 158, height = 93, units = "mm")
+
