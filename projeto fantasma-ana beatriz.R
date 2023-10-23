@@ -1,9 +1,9 @@
 library("ggplot2")
 library("dplyr")
-source("packages.R")
 ##Importando os dados
-devolucao<- read.csv("devolução.csv")
-vendas <- read.csv("vendas.csv")
+devolucao<- read.csv(".devolução.csv")
+vendas<-read.csv(".vendas.csv")
+
 ##Arrumando o banco de dados---- 
 #Mudando os nomes
 colnames(vendas)[] = c("ordem","ordem1", "data da venda", "ID do usuário","ID do produto","nome do produto",
@@ -13,9 +13,9 @@ colnames(vendas)[] = c("ordem","ordem1", "data da venda", "ID do usuário","ID d
 vendas$ordem1<- NULL
 vendas$sodeussabe<-NULL
 
-view(vendas_s2)
+
 #Verificando a duplicidade no ID único
-tem_dupli<- any(duplicated())
+tem_dupli<- any(duplicated(vendas$`ID único`))
 if(tem_dupli){
   print("Existe duplicidade")
 } else {
@@ -35,9 +35,9 @@ if(tem_dupli2){
 }
 
 
-#1.0)Faturamento anual po categoria----
+#1)Faturamento anual po categoria----
 
-#1.1)Grafico de faturamento por categoria----
+#1.1) Grafico de faturamento por categoria----
 
 #Tratando os dados
 faturamento_por_categoria <- vendas_s2 %>%
@@ -91,8 +91,6 @@ ggplot(faturamento_por_categ, aes(
 #ggsave("fatura-categoria.pdf", width = 158, height = 93, units = "mm")
 
 
-
-
 #1.2)Grafico da analise mensal de faturamento por categoria----
 #arrumando os dados
 vendas_hit <- vendas_s2 %>% 
@@ -112,7 +110,7 @@ vendas_hit$`data da venda` <- NULL
 # Agrupar por categoria e mês\calcular a média do preço
 venda_hit <- vendas_hit %>%
   group_by(categoria, mes) %>%
-  summarise(media_preco = sum(preço, na.rm = TRUE))
+  summarise(media_preco = mean(preço, na.rm = TRUE))
 
 ggplot(venda_hit) +
   aes(x = mes, y = media_preco, group = categoria, colour = categoria) +
@@ -124,14 +122,12 @@ Moda Masculina","Moda Infantil")) +
   scale_x_continuous(breaks = 1:12, labels = c("Jan", "Fev", "Mar", "Abr", "Mai", 
                                                "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez")) +
   theme_estat()
-#ggsave("media_fat.mensal_categ.pdf", width = 158, height = 93, units = "mm")
-
-
+ggsave("media_fat.mensal_categ.pdf", width = 158, height = 93, units = "mm")
 
 
 #2.0)Variação do preço por marca----
+
 #2.1)Quadro de resumo----
-# Excluir NA
 vendas_s2_na <- vendas_s2[!is.na(vendas_s2$preço) & !is.na(vendas_s2$marca),]
 quadro_resumo <- vendas_s2_na %>% 
   group_by(marca) %>% # caso mais de uma categoria
@@ -147,18 +143,14 @@ quadro_resumo <- vendas_s2_na %>%
 
 xtable::xtable(quadro_resumo)
 
+
+
 #2.2) Box-Plot 
-
-vendas_s2_na <- vendas_s2[!is.na(vendas_s2$preço) & !is.na(vendas_s2$marca), ]
-
-
 ggplot(vendas_s2_na) +
-  aes(x = marca, y = preço) +
-  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
-  stat_summary(
-    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
-  ) +
-  labs(x = "Marca", y = "Preço") +
-  theme_estat()
+aes(x = marca, y = preço) +
+geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+stat_summary(fun = "mean", geom = "point", shape = 23, size = 3, fill = "white") +
+labs(x = "Marca", y = "Preço") +
+theme_estat()
 #ggsave("box_bi.pdf", width = 158, height = 93, units = "mm")
 
