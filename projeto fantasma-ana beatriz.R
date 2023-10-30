@@ -153,4 +153,93 @@ stat_summary(fun = "mean", geom = "point", shape = 23, size = 3, fill = "white")
 labs(x = "Marca", y = "Preço") +
 theme_estat()
 #ggsave("box_bi.pdf", width = 158, height = 93, units = "mm")
+#2.3)ANOVA----
+#Teste One-Way ANOVA
+
+modelo <- aov(preço ~ marca, data = vendas_s2_na)
+mod_test <- lm(preço ~ marca, data = vendas_s2_na)
+#nao rejeita a H0, p-valo> 0.05
+
+# Resumo do modelo ANOVA
+summary(modelo)
+SQtotal <- sum((vendas_s2_na$preço - mean(vendas_s2_na$preço))^2)
+SQtotal
+
+#analisando os presuposto
+'Normalidade'
+shapiro.test(modelo$residuals)
+#nosso modelo é linear.
+qqnorm(modelo$residuals)
+qqline(modelo$residuals)
+'-> como p valor é maior que 0.05, rejeitamos H0, logo aceitamos a normalidade'
+
+'Independência'
+plot(modelo$residuals)
+'->tende a ser independende '
+
+'Homocedaticidade'
+#install.packages("car")
+library(car)
+leveneTest(preço ~ marca, data = vendas_s2_na)
+'-> como p valor é maior que 0.05, aceitamos a homocedasticidade'
+
+
+#3.0)Relação entre categorias (apenas feminino e masculino) e cor----
+# Filtrar dados e traduzir 
+filt_vendas <- vendas_s2 %>%
+  filter(categoria %in% c("Men's Fashion", "Women's Fashion")) %>%
+  filter(!is.na(cor)) %>%
+  droplevels() %>%
+  mutate(
+    categoria = case_when(
+      categoria == "Men's Fashion" ~ "Moda Masculina",
+      categoria == "Women's Fashion" ~ "Moda Feminina"
+    ),
+    cor = case_when(
+      cor == "Black" ~ "Preto",
+      cor == "Green" ~ "Verde",
+      cor == "White" ~ "Branco",
+      cor == "Blue" ~ "Azul",
+      cor == "Red" ~ "Vermelho",
+      cor == "Yellow" ~ "Amarelo"
+    )
+  )
+
+# Calcular frequência relativa
+df_freq <- filt_vendas %>%
+  group_by(categoria, cor) %>%
+  summarise(freq = n()) %>%
+  group_by(categoria) %>%
+  mutate(total = sum(freq),
+         relative_freq = (freq / total) * 100)
+
+# Criar rótulos para as barras
+df_freq <- df_freq %>%
+  mutate(legends = str_c(freq, " (", round(relative_freq, 2), "%)"))
+
+# Criar o gráfico
+ggplot(df_freq)+
+  aes(
+    x = fct_reorder(categoria, total, .desc = T),
+    y = freq, 
+    fill = cor, 
+    label = legends
+  )+
+  geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
+  geom_text(
+    position = position_dodge(width = 0.9), 
+    vjust = 0.2, hjust = -0.1, 
+    size = 3
+  ) +
+  labs(x = "Categoria", y = "Frequência") +
+  theme_estat() +
+  scale_y_continuous(name = "Frequência por Cor", limits = c(0, 75)) +
+  coord_flip()
+ggsave("barras-bi-freq.pdf", width = 158, height = 93, units = "mm")
+
+
+
+
+
+
 
