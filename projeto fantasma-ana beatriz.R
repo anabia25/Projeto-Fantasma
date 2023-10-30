@@ -154,7 +154,7 @@ labs(x = "Marca", y = "Preço") +
 theme_estat()
 #ggsave("box_bi.pdf", width = 158, height = 93, units = "mm")
 #2.3)ANOVA----
-#Teste One-Way ANOVA
+#Teste ANOVA
 
 modelo <- aov(preço ~ marca, data = vendas_s2_na)
 mod_test <- lm(preço ~ marca, data = vendas_s2_na)
@@ -162,9 +162,6 @@ mod_test <- lm(preço ~ marca, data = vendas_s2_na)
 
 # Resumo do modelo ANOVA
 summary(modelo)
-SQtotal <- sum((vendas_s2_na$preço - mean(vendas_s2_na$preço))^2)
-SQtotal
-
 #analisando os presuposto
 'Normalidade'
 shapiro.test(modelo$residuals)
