@@ -183,10 +183,10 @@ leveneTest(preço ~ marca, data = vendas_s2_na)
 
 #3.0)Relação entre categorias (apenas feminino e masculino) e cor----
 # Filtrar dados e traduzir 
+# Filtrar dados e traduzir 
 filt_vendas <- vendas_s2 %>%
   filter(categoria %in% c("Men's Fashion", "Women's Fashion")) %>%
   filter(!is.na(cor)) %>%
-  droplevels() %>%
   mutate(
     categoria = case_when(
       categoria == "Men's Fashion" ~ "Moda Masculina",
@@ -201,7 +201,6 @@ filt_vendas <- vendas_s2 %>%
       cor == "Yellow" ~ "Amarelo"
     )
   )
-
 # Calcular frequência relativa
 df_freq <- filt_vendas %>%
   group_by(categoria, cor) %>%
@@ -232,7 +231,7 @@ ggplot(df_freq)+
   theme_estat() +
   scale_y_continuous(name = "Frequência por Cor", limits = c(0, 75)) +
   coord_flip()
-ggsave("barras-bi-freq.pdf", width = 158, height = 93, units = "mm")
+#ggsave("barras-bi-freq.pdf", width = 158, height = 93, units = "mm")
 
 
 
