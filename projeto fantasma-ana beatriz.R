@@ -116,7 +116,7 @@ vendas_hit$`data da venda` <- NULL
 # Agrupar por categoria e mês\calcular a média do preço
 venda_hit <- vendas_hit %>%
   group_by(categoria, mes) %>%
-  summarise(media_preco = mean(preço, na.rm = TRUE))
+  summarise(media_preco = sum(preço, na.rm = TRUE))
 
 ggplot(venda_hit) +
   aes(x = mes, y = media_preco, group = categoria, colour = categoria) +
@@ -194,6 +194,16 @@ ggplot(data = data.frame(ResiduosPadronizados = residuos_padronizados), aes(samp
 
 #2.4.2)Independência----
 plot(modelo$residuals)
+residuos <- modelo$residuals
+
+ggplot(data.frame(Residuos = residuos), aes(x = seq_along(residuos), y = Residuos)) +
+  geom_point(colour = "#A11D21", size = 2) +
+  labs(
+    x = "Índice dos Resíduos",
+    y = "Resíduos"
+  ) +
+  theme_estat()
+ggsave("indepe_resi_2.4.pdf", width = 200, height = 93, units = "mm")
 '->tende a ser independende '
 
 #2.4.3)Homocedaticidade----
@@ -301,16 +311,17 @@ vendas_pa <- vendas_s2%>%
 
 #4.1)quadro de resumos----
 quadro(vendas_pa[, c("preço", "avaliação")])
-
+vendas_pa$`ID do usuário`
 # Criar um boxplot
 ggplot(vendas_pa) +
   aes(x = preço, y = avaliação) +
   geom_boxplot(fill = c("#A11D21"), width = 0.5) +
-  labs(x = "Marca", y = "Preço") +
+  labs(x = "preço", y = "avaliação") +
   theme_estat()
 #ggsave("box_bi.pdf", width = 158, height = 93, units = "mm")
 
-#4.2) grafico de dispersão----
+
+ #4.2) grafico de dispersão----
 ggplot(vendas_pa) +
   aes(x = avaliação, y = preço) +
   geom_point(colour = "#A11D21", size = 2) +
@@ -362,7 +373,7 @@ ggplot(dados, aes(x = Valores_Ajustados, y = Residuos)) +
   ) +
   theme_estat()+
   scale_y_continuous(breaks = seq(-10, 10, 0.5)) 
-ggsave("graf.reg.lin1.pdf", width = 158, height = 93, units = "mm")
+#ggsave("graf.reg.lin1.pdf", width = 158, height = 93, units = "mm")
 
 # 4.6) grafico dos residuos padronizados
 
@@ -491,4 +502,87 @@ chisq.test(tabela_contingencia_geral)
 resultado_teste<- chisq.test(tabela_contingencia_geral)
 frequencias_esperadas <- resultado_teste$expected
 frequencias_esperadas
+
+#6.0)Avaliação (rating) média por marca---- 
+vendas_s2_am <- vendas_s2[!is.na(vendas_s2$avaliação) & !is.na(vendas_s2$marca),]
+
+#6.1)Quadro de resumo----
+quadro_resumo_am <- vendas_s2_am %>% 
+  group_by(marca) %>% # caso mais de uma categoria
+  summarise(Média = round(mean(avaliação),2),
+            `Desvio Padrão` = round(sd(avaliação),2),
+            `Variância` = round(var(avaliação),2),
+            `Mínimo` = round(min(avaliação),2),
+            `1º Quartil` = round(quantile(avaliação, probs = .25),2),
+            Mediana = round(quantile(avaliação, probs = .5),2),
+            `3º Quartil` = round(quantile(avaliação, probs = .75),2),
+            `Máximo` = round(max(avaliação),2))  %>% t() %>% as.data.frame() %>%
+  mutate(V1 = str_replace(V1,"\\.",",")) %>%
+  mutate(V2 = str_replace(V2,"\\.",",")) %>%
+  mutate(V3 = str_replace(V3,"\\.",",")) %>%
+  mutate(V4 = str_replace(V4,"\\.",",")) %>%
+  mutate(V5 = str_replace(V5,"\\.",","))
+
+xtable::xtable(quadro_resumo_am)
+#view(quadro_resumo_am)
+
+
+#6.2) Box-Plot---- 
+ggplot(vendas_s2_am) +
+aes(x = marca, y = avaliação) +
+geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+stat_summary(fun = "mean", geom = "point", shape = 23, size = 3, fill = "white") +
+labs(x = "Marca", y = "Avaliação") +
+theme_estat()
+#ggsave("box_bi_avaliação.pdf", width = 158, height = 93, units = "mm")
+
+#6.3)ANOVA----
+#Teste ANOVA
+
+modelo_am <- aov(avaliação ~ marca, data = vendas_s2_am)
+mod_test <- lm(avaliação ~ marca, data = vendas_s2_am)
+#nao rejeita a H0, p-valo> 0.05
+summary(modelo_am)
+summary(mod_test)
+
+#6.4)analisando os presuposto----
+#6.4.1)Normalidade----
+shapiro.test(modelo_am$residuals)
+#nosso modelo é linear.
+qqnorm(modelo_am$residuals)
+qqline(modelo_am$residuals)
+
+
+modelo_ <- lm(preço ~ marca, data = vendas_s2_na)
+residuos_padronizado <- rstandard(modelo_)
+
+#QQ-plot dos resíduos padronizados
+ggplot(data = data.frame(ResiduosPadronizado = residuos_padronizado), aes(sample = ResiduosPadronizado)) +
+  geom_qq(colour = "#A11D21", size = 2) +
+  geom_abline(intercept = mean(residuos_padronizados), slope = sd(residuos_padronizados), color = "#0073C2", linetype = "dashed") +
+  labs(
+    x = "Quantis Teóricos",
+    y = "Resíduos Padronizados"
+  ) +
+  theme_estat()
+#ggsave("normalida_am.pdf", width = 200, height = 93, units = "mm")
+'-> como p valor é maior que 0.05, rejeitamos H0, logo aceitamos a normalidade'
+
+
+#6.4.2)Independência----
+plot(modelo_am$residuals)
+residuos <- modelo_am$residuals
+
+ggplot(data.frame(Residuos = residuos), aes(x = seq_along(residuos), y = Residuos)) +
+  geom_point(colour = "#A11D21", size = 2) +
+  labs(
+    x = "Índice dos Resíduos",
+    y = "Resíduos"
+  ) +
+  theme_estat()
+#ggsave("indepe_resi.pdf", width = 200, height = 93, units = "mm")
+
+#6.4.3)Homocedaticidade----
+leveneTest(avaliação ~ marca, data = vendas_s2_am)
+'-> como p valor é maior que 0.05, aceitamos a homocedasticidade'
 
