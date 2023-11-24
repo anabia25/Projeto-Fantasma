@@ -7,8 +7,8 @@ library(pacman)
 source("packages.R")
 
 ##Importando os dados
-vendas<-read.csv("vendas.csv")
-devolucao<- read.csv("devolução_atualizado.csv")
+vendas<-read.csv("C:\\Users\\beatr\\OneDrive\\Documentos\\ESTAT\\Projeto-Fantasma\\vendas.csv")
+devolucao<- read.csv("C:\\Users\\beatr\\OneDrive\\Documentos\\ESTAT\\Projeto-Fantasma\\devolução_atualizado.csv")
 
 
 ##Arrumando o banco de dados---- 
@@ -128,7 +128,9 @@ Moda Masculina","Moda Infantil")) +
   scale_x_continuous(breaks = 1:12, labels = c("Jan", "Fev", "Mar", "Abr", "Mai", 
                                                "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez")) +
   theme_estat()
+  #scale_x_continuous(name = "Frequência por categoria", limits = c(0, 40000))
 #ggsave("media_fat.mensal_categ.pdf", width = 158, height = 93, units = "mm")
+
 
 
 #2.0)Variação do preço por marca----
@@ -203,11 +205,12 @@ ggplot(data.frame(Residuos = residuos), aes(x = seq_along(residuos), y = Residuo
     y = "Resíduos"
   ) +
   theme_estat()
-ggsave("indepe_resi_2.4.pdf", width = 200, height = 93, units = "mm")
+#ggsave("indepe_resi_2.4.pdf", width = 200, height = 93, units = "mm")
 '->tende a ser independende '
 
 #2.4.3)Homocedaticidade----
 leveneTest(preço ~ marca, data = vendas_s2_na)
+bartlett.test(preço ~ marca, data = vendas_s2_na)
 '-> como p valor é maior que 0.05, aceitamos a homocedasticidade'
 
 
@@ -238,6 +241,10 @@ df_freq <- filt_vendas %>%
   group_by(categoria) %>%
   mutate(total = sum(freq),
          relative_freq = (freq / total) * 100)
+class_drv <- filt_vendas %>%
+  group_by(categoria, cor) %>%
+  summarise(freq = n()) %>%
+  mutate(freq_relativa = freq %>% percent())
 
 # Criar rótulos para as barras
 df_freq <- df_freq %>%
@@ -262,6 +269,39 @@ ggplot(df_freq)+
   scale_y_continuous(name = "Frequência por Categoria", limits = c(0, 75)) +
   coord_flip()
 #ggsave("barras-bi-freq.pdf", width = 158, height = 93, units = "mm")
+
+
+
+
+class_drv <- filt_vendas %>%
+  group_by(categoria, cor) %>%
+  summarise(freq = n()) %>%
+  mutate(freq_relativa = freq %>% percent())
+#View(class_drv)
+porcentagens <- str_c(class_drv$freq_relativa, "%") %>% str_replace("\\.", ",")
+legendas <- str_squish(str_c(class_drv$freq, " (", porcentagens, ")"))
+
+
+ggplot(class_drv) +
+  aes(
+    x = fct_reorder(cor, freq, .desc = T),
+    y = freq,
+    fill = categoria,
+    label = legendas
+  ) +
+  geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
+  geom_text(
+    position = position_dodge(width = .9),
+    vjust = 0.2, hjust = -0.1,
+    size = 3
+  ) +
+  labs(x = "Cores", y = "Frequência") +
+  theme_estat() +
+  scale_y_continuous(name = "Frequência por categoria", limits = c(0, 75)) +
+  coord_flip()
+ggsave("barras-bi-freq.pdf", width = 158, height = 93, units = "mm")
+
+
 
 
 ##3.1.2)grafico invertido----
@@ -304,7 +344,7 @@ print(resultado_teste)
 
 
 #4.0)Relação entre preço e avaliação----
-
+view(vendas_pa)
 vendas_pa <- vendas_s2%>%
   filter(!is.na(preço))%>%
   filter(!is.na(avaliação))
@@ -313,24 +353,85 @@ vendas_pa <- vendas_s2%>%
 quadro(vendas_pa[, c("preço", "avaliação")])
 vendas_pa$`ID do usuário`
 # Criar um boxplot
+
 ggplot(vendas_pa) +
-  aes(x = preço, y = avaliação) +
+  aes(
+    x = factor(""),
+    y = preço
+  ) +
   geom_boxplot(fill = c("#A11D21"), width = 0.5) +
-  labs(x = "preço", y = "avaliação") +
+  guides(fill = FALSE) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "", y = "Preço das Roupas em Reais") +
   theme_estat()
-#ggsave("box_bi.pdf", width = 158, height = 93, units = "mm")
+#ggsave("box_uni_preço.pdf", width = 158, height = 93, units = "mm")
+
+ggplot(vendas_pa) +
+  aes(
+    x = factor(""),
+    y = avaliação
+  ) +
+  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+  guides(fill = FALSE) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "", y = "Avaliação das Roupa") +
+  theme_estat()
+#ggsave("box_uni_avaliação4.pdf", width = 158, height = 93, units = "mm")
+
+
+
+#install.packages("gridExtra")
+library(gridExtra)
+library(ggplot2)
+
+# Seus gráficos existentes
+grafico1 <- ggplot(vendas_pa) +
+  aes(
+    x = factor(""),
+    y = preço
+  ) +
+  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+  guides(fill = FALSE) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "", y = "Preço das Roupas em Reais") +
+  theme_estat()
+
+grafico2 <- ggplot(vendas_pa) +
+  aes(
+    x = factor(""),
+    y = avaliação
+  ) +
+  geom_boxplot(fill = c("#A11D21"), width = 0.5) +
+  guides(fill = FALSE) +
+  stat_summary(
+    fun = "mean", geom = "point", shape = 23, size = 3, fill = "white"
+  ) +
+  labs(x = "", y = "Avaliação das Roupas") +
+  theme_estat()
+
+# Colocando os gráficos em um grid
+grid_combined <- grid.arrange(grafico1, grafico2, nrow = 1)
+ggsave("graficos_combinados.pdf", grid_combined, width = 10, height = 5)
+
+
 
 
  #4.2) grafico de dispersão----
 ggplot(vendas_pa) +
-  aes(x = avaliação, y = preço) +
+  aes(x = preço, y = avaliação) +
   geom_point(colour = "#A11D21", size = 2) +
   labs(
-    x = "Avaliação das Roupa",
-    y = "Preço das Roupas em Reais"
+    x = "Preço das Roupas em Reais",
+    y = "Avaliação das Roupa"
   ) +
   theme_estat()
-ggsave("graf.disp.pdf", width = 158, height = 93, units = "mm") 
+#ggsave("graf.disp.pdf", width = 158, height = 93, units = "mm") 
 
 
 # coeficiente de correlação
@@ -341,7 +442,7 @@ corr
 #grafico de dispersão ajustado
 modelo_regressao <- lm(avaliação ~ preço, data = vendas_pa)
 summary(modelo_regressao)
-
+0.0004<0.001
 #4.4)grafico de dispersão ajustado----
 ggplot(vendas_pa) +
   aes(x = avaliação, y = preço) +
@@ -362,6 +463,17 @@ ggplot(vendas_pa) +
 valores_ajustados <- fitted(modelo_regressao)
 residuos <- residuals(modelo_regressao)
 dados <- data.frame(Valores_Ajustados = valores_ajustados, Residuos = residuos)
+
+residuos <-modelo_regressao$residuals
+
+ggplot(data.frame(Residuos = residuos), aes(x = seq_along(residuos), y = Residuos)) +
+  geom_point(colour = "#A11D21", size = 2) +
+  labs(
+    x = "Índice dos Resíduos",
+    y = "Resíduos"
+  ) +
+  theme_estat()
+ggsave("faltaesse.pdf", width = 158, height = 93, units = "mm")
 
 
 ggplot(dados, aes(x = Valores_Ajustados, y = Residuos)) +
@@ -423,6 +535,13 @@ ggplot(dados_cooks, aes(x = Num_Observacoes, y = Cooks_Distancia)) +
 #4.7.1) teste de normalidade----
 shapiro.test(modelo_regressao$residuals)
 
+
+preco <- vendas_pa$preço
+shapiro.test(preco)
+
+avaliacao <- vendas_pa$avaliação
+shapiro.test(avaliacao)
+
 #4.7.2) teste de correlação----
 
 #pearson
@@ -461,11 +580,22 @@ trans_drv <- vendas_devol %>%
     marca %>% str_detect("Nike") ~ "Nike",
     marca %>% str_detect("Zara") ~ "Zara"
   )) %>%
+  mutate(Motivo.devolução = case_when(
+    Motivo.devolução %>% str_detect("Produto com defeito") ~ "Defeito",
+    Motivo.devolução %>% str_detect("Não informado") ~ "Não informado",
+    Motivo.devolução %>% str_detect("Arrependimento") ~ "Arrependimento"
+    ))%>%
   group_by(marca, Motivo.devolução) %>%
   summarise(freq = n()) %>%
   mutate(
     freq_relativa = freq %>% percent()
   )
+
+
+trans_drv <- trans_drv %>%
+  rename(Motivo = Motivo.devolução)
+
+view(trans_drv)
 
 
 porcentagens <- str_c(trans_drv$freq_relativa, "%") %>% str_replace("\\.", ",")
@@ -478,7 +608,7 @@ ggplot(trans_drv) +
   aes(
     x = fct_reorder(marca, freq, .desc = T),
     y = freq,
-    fill = Motivo.devolução,
+    fill = Motivo,
     label = legendas
   ) +
   geom_col(position = position_dodge2(preserve = "single", padding = 0)) +
@@ -487,11 +617,12 @@ ggplot(trans_drv) +
     vjust = 0.2, hjust = -0.1,
     size = 3
   ) +
-  labs(x = "Marcas", y = "Frequência") +
+  labs(x = "Marcas", y = "Frequência",, fill = " Motivo da Devolução ") +
+  scale_colour_manual(name = "Motivo", labels = c("Arrependimento", "Não informado", "Com defeito")) +
   theme_estat() +
   scale_y_continuous(name = "Frequência", limits = c(0, 43)) +
   coord_flip()
-#ggsave("barras-bi-freq_dev.pdf", width = 158, height = 93, units = "mm")
+ggsave("barras-bi-freq_dev.pdf", width = 158, height = 93, units = "mm")
 
 #5.3)testes----
 #5.3.1)teste qui-quadrado----
@@ -584,5 +715,6 @@ ggplot(data.frame(Residuos = residuos), aes(x = seq_along(residuos), y = Residuo
 
 #6.4.3)Homocedaticidade----
 leveneTest(avaliação ~ marca, data = vendas_s2_am)
+bartlett.test(avaliação ~ marca, data = vendas_s2_am)
 '-> como p valor é maior que 0.05, aceitamos a homocedasticidade'
 
